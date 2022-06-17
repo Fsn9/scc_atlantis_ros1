@@ -24,6 +24,7 @@
 #include <ros/duration.h>
 #include <iostream>
 #include <string>
+#include "robots.h"
 
 /**
 \defgroup control_functions
@@ -121,7 +122,7 @@ int wait4start();
 This function will create a local reference frame based on the starting location of the drone. This is typically done right before takeoff. This reference frame is what all of the the set destination commands will be in reference to.
 @returns 0 - frame initialized
 */
-int initialize_local_frame();
+int initialize_local_frame(std::shared_ptr<Robot> robot);
 
 int arm();
 

@@ -5,16 +5,18 @@
 #include "mavros_msgs/SetMode.h"
 #include "mavros_msgs/CommandBool.h"
 #include <geometry_msgs/PoseStamped.h>
+#include "gnc_functions.h"
+#include "robots.h"
 
-class CmdsServer
+class SCC
 {
     public:
-        CmdsServer(std::shared_ptr<ros::NodeHandle> nh)
+        SCC(std::shared_ptr<ros::NodeHandle> nh)
         {
             // Services
-            set_mode_srv_ = nh->advertiseService("/scc/set_mode", &CmdsServer::set_mode_cb, this);
-            arm_srv_ = nh->advertiseService("/scc/arm", &CmdsServer::arm_cb, this);
-            takeoff_srv_ = nh->advertiseService("/scc/takeoff", &CmdsServer::takeoff_cb, this);
+            set_mode_srv_ = nh->advertiseService("/scc/set_mode", &SCC::set_mode_cb, this);
+            arm_srv_ = nh->advertiseService("/scc/arm", &SCC::arm_cb, this);
+            takeoff_srv_ = nh->advertiseService("/scc/takeoff", &SCC::takeoff_cb, this);
 
             // Clients
             set_mode_client_ = nh->serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
@@ -27,12 +29,17 @@ class CmdsServer
             nh_ = nh;
 
             // Some parameters
+            // TODO: put these as arg in launch
             max_altitude_ = 10;
+
+            // Initialize robots
+            raven_ = std::make_shared<Raven>();
+            crow_ = std::make_shared<Crow>();
         }
         bool set_mode_cb(scc_atlantis_ros1::SetMode::Request &req, scc_atlantis_ros1::SetMode::Response &res)
         {
             mavros_msgs::SetMode set_mode_srv;
-            set_mode_srv.request.custom_mode = req.mode;
+            set_mode_srv.request.custom_mode = req.mode.c_str();
             
             if (set_mode_client_.call(set_mode_srv))
             {
@@ -48,7 +55,7 @@ class CmdsServer
         bool arm_cb(scc_atlantis_ros1::Arm::Request &req, scc_atlantis_ros1::Arm::Response &res)
         {
             mavros_msgs::CommandBool arm_srv;
-            arm_srv.request.value = true;
+            arm_srv.request.value = req.value;
             
             if (arm_client_.call(arm_srv) && arm_srv.response.success)
             {
@@ -102,18 +109,24 @@ class CmdsServer
         // Parameters
         uint8_t max_altitude_;
 
+        // Robots
+        std::shared_ptr<Crow> crow_;
+        std::shared_ptr<Raven> raven_;
+
 };
 
 int main(int argc, char **argv)
 {
     // Initialize ros node object
-    ros::init(argc, argv, "scc_server");
+    ros::init(argc, argv, "scc");
     // Node Handle will be shared between main and RTL server object
     std::shared_ptr<ros::NodeHandle> nh = std::make_shared<ros::NodeHandle>();
 
-    // Create Cmds server
-    CmdsServer cmds_server(nh);
+    // Create Scc server
+    SCC scc(nh);
+    
     ROS_INFO("Ready to provide MavLink command services: arm, takeoff, set_mode");
+
     ros::spin();
 
     return 0;

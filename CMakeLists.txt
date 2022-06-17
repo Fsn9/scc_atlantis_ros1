@@ -208,14 +208,18 @@ include_directories(
 # catkin_add_nosetests(test)
 
 # Include headers
-include_directories(include)
+include_directories(include/scc_atlantis_ros1)
 
 # Libraries definition
 add_library(gnc_lib STATIC
   src/gnc_functions.cpp
 )
 
+add_library(robots_lib STATIC
+  src/robots.cpp
+)
+
 # Define targets
-add_executable(scc_server src/scc_server.cpp)
-target_link_libraries(scc_server ${catkin_LIBRARIES} gnc_lib)
-add_dependencies(scc_server scc_atlantis_ros1_gencpp)
+add_executable(scc src/run_scc.cpp)
+target_link_libraries(scc ${catkin_LIBRARIES} gnc_lib robots_lib)
+add_dependencies(scc scc_atlantis_ros1_gencpp)

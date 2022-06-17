@@ -5,10 +5,12 @@ nav_msgs::Odometry current_pose_g;
 geometry_msgs::Pose correction_vector_g;
 geometry_msgs::Point local_offset_pose_g;
 geometry_msgs::PoseStamped waypoint_g;
+
 float current_heading_g;
 float local_offset_g;
 float correction_heading_g = 0;
 float local_desired_heading_g; 
+
 ros::Publisher local_pos_pub;
 ros::Publisher global_lla_pos_pub;
 ros::Publisher global_lla_pos_pub_raw;
@@ -68,7 +70,6 @@ geometry_msgs::Point get_current_location()
 	current_pos_local = enu_2_local(current_pose_g);
 	return current_pos_local;
 }
-
 
 float get_current_heading()
 {
@@ -193,12 +194,12 @@ int wait4connect()
 	{
 		ROS_INFO("Connected to FCU");	
 		return 0;
-	}else{
+	}
+	else
+	{
 		ROS_INFO("Error connecting to drone");
 		return -1;	
 	}
-	
-	
 }
 
 /**
@@ -230,7 +231,7 @@ int wait4start()
 This function will create a local reference frame based on the starting location of the drone. This is typically done right before takeoff. This reference frame is what all of the the set destination commands will be in reference to.
 @returns 0 - frame initialized
 */
-int initialize_local_frame()
+int initialize_local_frame(std::shared_ptr<Robot> robot)
 {
 	//set the orientation of the local reference frame
 	ROS_INFO("Initializing local coordinate system");
