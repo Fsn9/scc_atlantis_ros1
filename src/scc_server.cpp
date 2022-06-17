@@ -14,7 +14,7 @@ class CmdsServer
             // Services
             set_mode_srv_ = nh->advertiseService("/scc/set_mode", &CmdsServer::set_mode_cb, this);
             arm_srv_ = nh->advertiseService("/scc/arm", &CmdsServer::arm_cb, this);
-            takeoff_srv_ = nh->advertiseService("/scc_atlantis_ros1/takeoff", &CmdsServer::takeoff_cb, this);
+            takeoff_srv_ = nh->advertiseService("/scc/takeoff", &CmdsServer::takeoff_cb, this);
 
             // Clients
             set_mode_client_ = nh->serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");

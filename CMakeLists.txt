@@ -207,6 +207,15 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
+# Include headers
+include_directories(include)
+
+# Libraries definition
+add_library(gnc_lib STATIC
+  src/gnc_functions.cpp
+)
+
+# Define targets
 add_executable(scc_server src/scc_server.cpp)
-target_link_libraries(scc_server ${catkin_LIBRARIES})
+target_link_libraries(scc_server ${catkin_LIBRARIES} gnc_lib)
 add_dependencies(scc_server scc_atlantis_ros1_gencpp)
