@@ -12,5 +12,5 @@ Crow::Crow()
 
 Raven::Raven()
 {
-	correction_heading_g_ = 0;
+    correction_heading_g_ = 0;
 }
