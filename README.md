@@ -1,1 +1,1 @@
-# SCC Atlantis for ROS1
+# SCC Atlantis (ROS1)

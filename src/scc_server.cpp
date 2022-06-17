@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     // Node Handle will be shared between main and RTL server object
     std::shared_ptr<ros::NodeHandle> nh = std::make_shared<ros::NodeHandle>();
 
-    // Create RTL server
+    // Create Cmds server
     CmdsServer cmds_server(nh);
     ROS_INFO("Ready to provide MavLink command services: arm, takeoff, set_mode");
     ros::spin();
