@@ -47,10 +47,10 @@ class SCC
             takeoff_clients_["crow"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/crow/mavros/cmd/takeoff"));
             
             // Subscribers
-            crow_odom_sub_ = nh_->subscribe<nav_msgs::Odometry>("/crow/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["crow"]));
-            raven_odom_sub_ = nh_->subscribe<nav_msgs::Odometry>("/raven/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["raven"]));
+            odom_subs_["raven"] = std::make_shared<ros::Subscriber>(nh_->subscribe<nav_msgs::Odometry>("/raven/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["raven"])));
+            odom_subs_["crow"] = std::make_shared<ros::Subscriber>(nh_->subscribe<nav_msgs::Odometry>("/crow/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["crow"])));
             state_subs_["raven"] = std::make_shared<ros::Subscriber>(nh_->subscribe<mavros_msgs::State>("/raven/mavros/state", 10, boost::bind(&SCC::state_cb, this, _1, robots_["raven"])));
-            state_subs_["crow"] = std::make_shared<ros::Subscriber>(nh_->subscribe<mavros_msgs::State>("/raven/mavros/state", 10, boost::bind(&SCC::state_cb, this, _1, robots_["crow"])));
+            state_subs_["crow"] = std::make_shared<ros::Subscriber>(nh_->subscribe<mavros_msgs::State>("/crow/mavros/state", 10, boost::bind(&SCC::state_cb, this, _1, robots_["crow"])));
 
             // Initialize local frames
             initialize_local_frame(robots_["raven"]);
@@ -133,8 +133,7 @@ class SCC
         std::map<std::string, std::shared_ptr<ros::Publisher>> pose_pubs_;
 
         // Subscribers // TODO: update this to map struct
-        ros::Subscriber raven_odom_sub_;
-        ros::Subscriber crow_odom_sub_;
+        std::map<std::string, std::shared_ptr<ros::Subscriber>> odom_subs_;
         std::map<std::string, std::shared_ptr<ros::Subscriber>> state_subs_;
         
         // Parameters
