@@ -90,6 +90,11 @@ class SCC
         }
         bool takeoff_cb(scc_atlantis_ros1::Takeoff::Request &req, scc_atlantis_ros1::Takeoff::Response &res, std::shared_ptr<UAV> robot)
         {
+            if (robot->get_state().mode != "GUIDED")
+            {
+                ROS_ERROR("Before taking off set the robot mode to GUIDED");
+                return false;
+            }
             if(req.altitude > max_altitude_)
             {
                 ROS_ERROR("Altitude bigger than %d not allowed!", max_altitude_);
@@ -132,7 +137,7 @@ class SCC
         // Pubs
         std::map<std::string, std::shared_ptr<ros::Publisher>> pose_pubs_;
 
-        // Subscribers // TODO: update this to map struct
+        // Subscribers
         std::map<std::string, std::shared_ptr<ros::Subscriber>> odom_subs_;
         std::map<std::string, std::shared_ptr<ros::Subscriber>> state_subs_;
         
