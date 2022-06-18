@@ -17,11 +17,29 @@ class Robot
 class UAV : public Robot
 {
   public:
+    UAV(std::string namespace_name);
     nav_msgs::Odometry get_pose();
     void set_pose(nav_msgs::Odometry pose);
     float get_heading();
     void set_heading(float heading);
-  protected:
+    float get_local_offset();
+    void set_local_offset(float offset);
+    geometry_msgs::Point get_local_offset_pose();
+    void set_local_offset_pose(geometry_msgs::Point local_offset_pose);
+    float get_local_desired_heading();
+    void set_local_desired_heading(float heading);
+    float get_correction_heading();
+    void set_correction_heading(float correction_heading);
+    geometry_msgs::PoseStamped get_waypoint();
+    void set_waypoint(geometry_msgs::PoseStamped wp);
+    void set_waypoint_orientation(float qw, float qx, float qy, float qz);
+    void set_waypoint_position(float x, float y, float z);
+    geometry_msgs::Pose get_correction_vector();
+    std::string get_namespace_name();
+    mavros_msgs::State get_state();
+    void set_state(mavros_msgs::State state);
+
+  private: // TODO: erase _g
     float current_heading_g_;
     float local_offset_g_;
     float correction_heading_g_;
@@ -32,23 +50,13 @@ class UAV : public Robot
     geometry_msgs::Pose correction_vector_;
     geometry_msgs::Point local_offset_pose_;
     geometry_msgs::PoseStamped waypoint_;
+
+    std::string namespace_name_;
 };
 
 class Zarco : public Robot
 {
   public:
-    Zarco();
-};
-
-class Crow : public UAV
-{
-	public:
-    Crow();
-};
-
-class Raven : public UAV
-{
-	public:
-    Raven();
+    Zarco() = default;
 };
 #endif // ROBOTS_H

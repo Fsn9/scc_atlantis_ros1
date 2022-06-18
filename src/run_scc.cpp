@@ -7,8 +7,6 @@
 #include <geometry_msgs/PoseStamped.h>
 #include "gnc_functions.h"
 #include "robots.h"
-//#include <boost/bind/bind.hpp>
-//using std::placeholders::_1;
 
 class SCC
 {
@@ -22,31 +20,48 @@ class SCC
             // TODO: put these as arg in launch
             max_altitude_ = 10;
 
-            // Initialize robots
-            raven_ = std::make_shared<Raven>();
-            crow_ = std::make_shared<Crow>();
-            // Services
-            set_mode_srv_ = nh->advertiseService("/scc/set_mode", &SCC::set_mode_cb, this);
-            arm_srv_ = nh->advertiseService("/scc/arm", &SCC::arm_cb, this);
-            takeoff_srv_ = nh->advertiseService("/scc/takeoff", &SCC::takeoff_cb, this);
-
-            // Clients
-            set_mode_client_ = nh->serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
-            arm_client_ = nh->serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
+            // Initialize
+            // robots_ : a map from namespace to robot pointer
+            // pose_pubs_ : a map from namespace to pose publisher
+            robots_["raven"] = std::make_shared<UAV>("raven");
+            robots_["crow"] = std::make_shared<UAV>("crow");
 
             // Pubs
-            takeoff_pub_ = nh->advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
+            pose_pubs_["raven"] = std::make_shared<ros::Publisher>(nh->advertise<geometry_msgs::PoseStamped>("/raven/mavros/setpoint_position/local", 10));
+            pose_pubs_["crow"] = std::make_shared<ros::Publisher>(nh->advertise<geometry_msgs::PoseStamped>("/crow/mavros/setpoint_position/local", 10));
 
+            // Services
+            set_mode_servers_["crow"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::SetMode::Request, scc_atlantis_ros1::SetMode::Response>("/scc/crow/set_mode", boost::bind(&SCC::set_mode_cb, this, _1, _2, robots_["crow"])));
+            set_mode_servers_["raven"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::SetMode::Request, scc_atlantis_ros1::SetMode::Response>("/scc/raven/set_mode", boost::bind(&SCC::set_mode_cb, this, _1, _2, robots_["raven"])));
+            arm_servers_["crow"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Arm::Request, scc_atlantis_ros1::Arm::Response>("/scc/crow/arm", boost::bind(&SCC::arm_cb, this, _1, _2, robots_["crow"])));
+            arm_servers_["raven"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Arm::Request, scc_atlantis_ros1::Arm::Response>("/scc/raven/arm", boost::bind(&SCC::arm_cb, this, _1, _2, robots_["raven"])));
+            takeoff_servers_["crow"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Takeoff::Request, scc_atlantis_ros1::Takeoff::Response>("/scc/crow/takeoff", boost::bind(&SCC::takeoff_cb, this, _1, _2, robots_["crow"])));
+            takeoff_servers_["raven"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Takeoff::Request, scc_atlantis_ros1::Takeoff::Response>("/scc/raven/takeoff", boost::bind(&SCC::takeoff_cb, this, _1, _2, robots_["raven"])));
+
+            // Clients
+            set_mode_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::SetMode>("/raven/mavros/set_mode"));
+            set_mode_clients_["crow"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::SetMode>("/crow/mavros/set_mode"));
+            arm_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandBool>("/raven/mavros/cmd/arming"));
+            arm_clients_["crow"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandBool>("/crow/mavros/cmd/arming"));
+            takeoff_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/raven/mavros/cmd/takeoff"));
+            takeoff_clients_["crow"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/crow/mavros/cmd/takeoff"));
+            
             // Subscribers
-            crow_odom_sub_ = nh_->subscribe<nav_msgs::Odometry>("/crow/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, crow_));
-            raven_odom_sub_ = nh_->subscribe<nav_msgs::Odometry>("/raven/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, raven_));
+            crow_odom_sub_ = nh_->subscribe<nav_msgs::Odometry>("/crow/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["crow"]));
+            raven_odom_sub_ = nh_->subscribe<nav_msgs::Odometry>("/raven/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["raven"]));
+            state_subs_["raven"] = std::make_shared<ros::Subscriber>(nh_->subscribe<mavros_msgs::State>("/raven/mavros/state", 10, boost::bind(&SCC::state_cb, this, _1, robots_["raven"])));
+            state_subs_["crow"] = std::make_shared<ros::Subscriber>(nh_->subscribe<mavros_msgs::State>("/raven/mavros/state", 10, boost::bind(&SCC::state_cb, this, _1, robots_["crow"])));
+
+            // Initialize local frames
+            initialize_local_frame(robots_["raven"]);
+            initialize_local_frame(robots_["crow"]);
         }
-        bool set_mode_cb(scc_atlantis_ros1::SetMode::Request &req, scc_atlantis_ros1::SetMode::Response &res)
+        bool set_mode_cb(scc_atlantis_ros1::SetMode::Request &req, scc_atlantis_ros1::SetMode::Response &res, std::shared_ptr<UAV> robot)
         {
             mavros_msgs::SetMode set_mode_srv;
             set_mode_srv.request.custom_mode = req.mode.c_str();
             
-            if (set_mode_client_.call(set_mode_srv))
+            if (set_mode_clients_[robot->get_namespace_name()]->call(set_mode_srv))
             {
                 ROS_INFO("%s mode was set!", req.mode.c_str());
                 return true;
@@ -57,12 +72,12 @@ class SCC
                 return false;
             }
         }
-        bool arm_cb(scc_atlantis_ros1::Arm::Request &req, scc_atlantis_ros1::Arm::Response &res)
+        bool arm_cb(scc_atlantis_ros1::Arm::Request &req, scc_atlantis_ros1::Arm::Response &res, std::shared_ptr<UAV> robot)
         {
             mavros_msgs::CommandBool arm_srv;
             arm_srv.request.value = req.value;
             
-            if (arm_client_.call(arm_srv) && arm_srv.response.success)
+            if (arm_clients_[robot->get_namespace_name()]->call(arm_srv) && arm_srv.response.success)
             {
                 ROS_INFO("arm order was sent!");
                 return true;
@@ -73,7 +88,7 @@ class SCC
                 return false;
             }
         }
-        bool takeoff_cb(scc_atlantis_ros1::Takeoff::Request &req, scc_atlantis_ros1::Takeoff::Response &res)
+        bool takeoff_cb(scc_atlantis_ros1::Takeoff::Request &req, scc_atlantis_ros1::Takeoff::Response &res, std::shared_ptr<UAV> robot)
         {
             if(req.altitude > max_altitude_)
             {
@@ -81,19 +96,7 @@ class SCC
                 return false;
             }
 
-            geometry_msgs::PoseStamped pose;
-            pose.pose.position.x = 0;
-            pose.pose.position.y = 0;
-            pose.pose.position.z = req.altitude;
-            takeoff_pub_.publish(pose);
-
-            //send a few setpoints before starting
-            ros::Rate rate(20.0);
-            for(int i = 100; ros::ok() && i > 0; --i){
-                takeoff_pub_.publish(pose);
-                ros::spinOnce();
-                rate.sleep();
-            }
+            takeoff(req.altitude, robot, pose_pubs_[robot->get_namespace_name()], arm_clients_[robot->get_namespace_name()], takeoff_clients_[robot->get_namespace_name()]);
             
             ROS_INFO("Takeoff order was sent!");
             return true;
@@ -101,36 +104,44 @@ class SCC
         void odom_cb(const nav_msgs::Odometry::ConstPtr& msg, std::shared_ptr<UAV> robot)
         {
             robot->set_pose(*msg);
-            enu_2_local(robot->get_pose());
+            //enu_2_local(robot->get_pose()); // TODO: check if this still applies
             float q0 = (*msg).pose.pose.orientation.w;
             float q1 = (*msg).pose.pose.orientation.x;
             float q2 = (*msg).pose.pose.orientation.y;
             float q3 = (*msg).pose.pose.orientation.z;
             float psi = atan2((2*(q0*q3 + q1*q2)), (1 - 2*(pow(q2,2) + pow(q3,2))) );
-            current_heading_g = psi*(180/M_PI) - local_offset_g;
+            robot->set_heading(psi*(180/M_PI) - robot->get_local_offset());
+        }
+        void state_cb(const mavros_msgs::State::ConstPtr& msg, std::shared_ptr<UAV> robot)
+        {
+            robot->set_state(*msg);
         }
     private:
         std::shared_ptr<ros::NodeHandle> nh_;
-        // Servers
-        ros::ServiceServer set_mode_srv_;
-        ros::ServiceServer takeoff_srv_;
-        ros::ServiceServer arm_srv_;
-        // Clients
-        ros::ServiceClient set_mode_client_;
-        ros::ServiceClient arm_client_;
-        // Pubs
-        ros::Publisher takeoff_pub_;
 
-        // Subscribers
+        // Services
+        std::map<std::string, std::shared_ptr<ros::ServiceServer>> arm_servers_;
+        std::map<std::string, std::shared_ptr<ros::ServiceServer>> set_mode_servers_;
+        std::map<std::string, std::shared_ptr<ros::ServiceServer>> takeoff_servers_;
+
+        // Clients
+        std::map<std::string, std::shared_ptr<ros::ServiceClient>> arm_clients_;
+        std::map<std::string, std::shared_ptr<ros::ServiceClient>> set_mode_clients_;
+        std::map<std::string, std::shared_ptr<ros::ServiceClient>> takeoff_clients_;
+
+        // Pubs
+        std::map<std::string, std::shared_ptr<ros::Publisher>> pose_pubs_;
+
+        // Subscribers // TODO: update this to map struct
         ros::Subscriber raven_odom_sub_;
         ros::Subscriber crow_odom_sub_;
+        std::map<std::string, std::shared_ptr<ros::Subscriber>> state_subs_;
         
         // Parameters
         uint8_t max_altitude_;
 
         // Robots
-        std::shared_ptr<Crow> crow_;
-        std::shared_ptr<Raven> raven_;
+        std::map<std::string, std::shared_ptr<UAV>> robots_;
 
 };
 

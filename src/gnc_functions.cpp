@@ -1,5 +1,7 @@
 #include "gnc_functions.h"
 
+const float deg2rad = M_PI / 180;
+
 mavros_msgs::State current_state_g;
 nav_msgs::Odometry current_pose_g;
 geometry_msgs::Pose correction_vector_g;
@@ -83,13 +85,14 @@ float get_current_heading()
 This function is used to specify the drone’s heading in the local reference frame. Psi is a counter clockwise rotation following the drone’s reference frame defined by the x axis through the right side of the drone with the y axis through the front of the drone. 
 @returns n/a
 */
-void set_heading(float heading)
+void set_heading(float heading, std::shared_ptr<UAV> robot)
 {
-  local_desired_heading_g = heading; 
-  heading = heading + correction_heading_g + local_offset_g;
+  robot->set_local_desired_heading(heading); 
+  heading = heading + correction_heading_g + robot->get_local_offset();
   
-  ROS_INFO("Desired Heading %f ", local_desired_heading_g);
-  float yaw = heading*(M_PI/180);
+  ROS_INFO("Desired Heading %f ", robot->get_local_desired_heading());
+  
+  float yaw = heading * deg2rad;
   float pitch = 0;
   float roll = 0;
 
@@ -105,32 +108,32 @@ void set_heading(float heading)
   float qy = cy * cr * sp + sy * sr * cp;
   float qz = sy * cr * cp - cy * sr * sp;
 
-  waypoint_g.pose.orientation.w = qw;
-  waypoint_g.pose.orientation.x = qx;
-  waypoint_g.pose.orientation.y = qy;
-  waypoint_g.pose.orientation.z = qz;
+  robot->set_waypoint_orientation(qw, qx, qy, qz);
 }
 
-void set_destination(float x, float y, float z, float psi)
+void set_destination(float x, float y, float z, float psi, std::shared_ptr<UAV> robot, std::shared_ptr<ros::Publisher> pose_pub)
 {
-	set_heading(psi);
-	//transform map to local
-	float deg2rad = (M_PI/180);
-	float Xlocal = x*cos((correction_heading_g + local_offset_g - 90)*deg2rad) - y*sin((correction_heading_g + local_offset_g - 90)*deg2rad);
-	float Ylocal = x*sin((correction_heading_g + local_offset_g - 90)*deg2rad) + y*cos((correction_heading_g + local_offset_g - 90)*deg2rad);
-	float Zlocal = z;
+	set_heading(psi, robot);
 
-	x = Xlocal + correction_vector_g.position.x + local_offset_pose_g.x;
-	y = Ylocal + correction_vector_g.position.y + local_offset_pose_g.y;
-	z = Zlocal + correction_vector_g.position.z + local_offset_pose_g.z;
+	//transform map to local
+	float correction_heading = robot->get_correction_heading();
+	float local_offset = robot->get_local_offset();
+	geometry_msgs::Point local_offset_pose = robot->get_local_offset_pose();
+	
+	float x_local = x*cos((correction_heading + local_offset - 90) * deg2rad) - y * sin((correction_heading + local_offset - 90) * deg2rad);
+	float y_local = x*sin((correction_heading + local_offset - 90) * deg2rad) + y * cos((correction_heading + local_offset - 90) * deg2rad);
+	float z_local = z;
+
+	geometry_msgs::Pose correction_vector = robot->get_correction_vector();
+	x = x_local + correction_vector.position.x + local_offset_pose.x;
+	y = y_local + correction_vector.position.y + local_offset_pose.y;
+	z = z_local + correction_vector.position.z + local_offset_pose.z;
 	ROS_INFO("Destination set to x: %f y: %f z: %f origin frame", x, y, z);
 
-	waypoint_g.pose.position.x = x;
-	waypoint_g.pose.position.y = y;
-	waypoint_g.pose.position.z = z;
+	robot->set_waypoint_position(x, y, z);
 
-	local_pos_pub.publish(waypoint_g);
-	
+	// TODO: make publisher
+	pose_pub->publish(robot->get_waypoint());	
 }
 
 void set_destination_lla(float lat, float lon, float alt, float heading)
@@ -231,32 +234,36 @@ int wait4start()
 This function will create a local reference frame based on the starting location of the drone. This is typically done right before takeoff. This reference frame is what all of the the set destination commands will be in reference to.
 @returns 0 - frame initialized
 */
-int initialize_local_frame(std::shared_ptr<Robot> robot)
+int initialize_local_frame(std::shared_ptr<UAV> robot) // TODO: change this to <Robot>
 {
-	//set the orientation of the local reference frame
 	ROS_INFO("Initializing local coordinate system");
-	local_offset_g = 0;
+	geometry_msgs::Point local_offset_pose_temp = robot->get_local_offset_pose();
 	for (int i = 1; i <= 30; i++) {
 		ros::spinOnce();
 		ros::Duration(0.1).sleep();
+		nav_msgs::Odometry pose = robot->get_pose();
 		
-		float q0 = current_pose_g.pose.pose.orientation.w;
-		float q1 = current_pose_g.pose.pose.orientation.x;
-		float q2 = current_pose_g.pose.pose.orientation.y;
-		float q3 = current_pose_g.pose.pose.orientation.z;
+		float q0 = pose.pose.pose.orientation.w;
+		float q1 = pose.pose.pose.orientation.x;
+		float q2 = pose.pose.pose.orientation.y;
+		float q3 = pose.pose.pose.orientation.z;
 		float psi = atan2((2*(q0*q3 + q1*q2)), (1 - 2*(pow(q2,2) + pow(q3,2))) ); // yaw
 
-		local_offset_g += psi*(180/M_PI);
+		robot->set_local_offset(robot->get_local_offset() + psi*(180/M_PI));
 
-		local_offset_pose_g.x = local_offset_pose_g.x + current_pose_g.pose.pose.position.x;
-		local_offset_pose_g.y = local_offset_pose_g.y + current_pose_g.pose.pose.position.y;
-		local_offset_pose_g.z = local_offset_pose_g.z + current_pose_g.pose.pose.position.z;
+		local_offset_pose_temp.x = local_offset_pose_temp.x + pose.pose.pose.position.x;
+		local_offset_pose_temp.y = local_offset_pose_temp.y + pose.pose.pose.position.y;
+		local_offset_pose_temp.z = local_offset_pose_temp.z + pose.pose.pose.position.z;
 		// ROS_INFO("current heading%d: %f", i, local_offset_g/i);
 	}
-	local_offset_pose_g.x = local_offset_pose_g.x/30;
-	local_offset_pose_g.y = local_offset_pose_g.y/30;
-	local_offset_pose_g.z = local_offset_pose_g.z/30;
-	local_offset_g /= 30;
+	// Average
+	local_offset_pose_temp.x = local_offset_pose_temp.x/30;
+	local_offset_pose_temp.y = local_offset_pose_temp.y/30;
+	local_offset_pose_temp.z = local_offset_pose_temp.z/30;
+	robot->set_local_offset_pose(local_offset_pose_temp);
+
+	robot->set_local_offset(robot->get_local_offset() / 30);
+
 	ROS_INFO("Coordinate offset set");
 	ROS_INFO("the X' axis is facing: %f", local_offset_g);
 	return 0;
@@ -265,7 +272,7 @@ int initialize_local_frame(std::shared_ptr<Robot> robot)
 int arm()
 {
 	//intitialize first waypoint of mission
-	set_destination(0,0,0,0);
+	//set_destination(0,0,0,0);
 	for(int i=0; i<100; i++)
 	{
 		local_pos_pub.publish(waypoint_g);
@@ -299,25 +306,27 @@ The takeoff function will arm the drone and put the drone in a hover above the i
 @returns -1 - failed to arm 
 @returns -2 - failed to takeoff
 */
-int takeoff(float takeoff_alt)
+int takeoff(float takeoff_alt, std::shared_ptr<UAV> robot, std::shared_ptr<ros::Publisher> pose_pub, std::shared_ptr<ros::ServiceClient> arm_client, std::shared_ptr<ros::ServiceClient> takeoff_client)
 {
-	//intitialize first waypoint of mission
-	set_destination(0,0,takeoff_alt,0);
+	// Initialize first waypoint of mission
+	set_destination(0, 0, takeoff_alt, 0, robot, pose_pub);
+	geometry_msgs::PoseStamped waypoint = robot->get_waypoint();
 	for(int i=0; i<100; i++)
 	{
-		local_pos_pub.publish(waypoint_g);
+		pose_pub->publish(waypoint);
 		ros::spinOnce();
-		ros::Duration(0.01).sleep();
+		ros::Duration(.01).sleep();
 	}
-	// arming
+
+	// Arm robot
 	ROS_INFO("Arming drone");
 	mavros_msgs::CommandBool arm_request;
 	arm_request.request.value = true;
-	while (!current_state_g.armed && !arm_request.response.success && ros::ok())
+	while (!robot->get_state().armed && !arm_request.response.success && ros::ok())
 	{
 		ros::Duration(.1).sleep();
-		arming_client.call(arm_request);
-		local_pos_pub.publish(waypoint_g);
+		arm_client->call(arm_request);
+		pose_pub->publish(waypoint);
 	}
 	if(arm_request.response.success)
 	{
@@ -327,13 +336,13 @@ int takeoff(float takeoff_alt)
 		return -1;	
 	}
 
-	//request takeoff
-	
-	mavros_msgs::CommandTOL srv_takeoff;
-	srv_takeoff.request.altitude = takeoff_alt;
-	if(takeoff_client.call(srv_takeoff)){
+	// Request takeoff
+	mavros_msgs::CommandTOL takeoff_request;
+	takeoff_request.request.altitude = takeoff_alt;
+	ROS_INFO("Sending Takeoff request to %f meters", takeoff_alt);
+	if(takeoff_client->call(takeoff_request) && takeoff_request.response.success){
 		sleep(3);
-		ROS_INFO("takeoff sent %d", srv_takeoff.response.success);
+		ROS_INFO("%s is taking off", robot->get_namespace_name().c_str());
 	}else{
 		ROS_ERROR("Failed Takeoff");
 		return -2;

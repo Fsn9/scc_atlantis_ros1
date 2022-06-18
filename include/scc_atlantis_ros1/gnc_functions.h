@@ -13,7 +13,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <cmath>
 #include <math.h>
-#include <ros/ros.h>
+#include "ros/ros.h"
 #include <std_msgs/Float64.h>
 #include <std_msgs/String.h>
 #include <mavros_msgs/CommandBool.h>
@@ -21,7 +21,7 @@
 #include <mavros_msgs/PositionTarget.h>
 #include <unistd.h>
 #include <vector>
-#include <ros/duration.h>
+//#include <ros/duration.h>
 #include <iostream>
 #include <string>
 #include "robots.h"
@@ -87,7 +87,7 @@ float get_current_heading();
 This function is used to specify the drone’s heading in the local reference frame. Psi is a counter clockwise rotation following the drone’s reference frame defined by the x axis through the right side of the drone with the y axis through the front of the drone. 
 @returns n/a
 */
-void set_heading(float heading);
+void set_heading(float heading, std::shared_ptr<UAV> robot);
 
 // set position to fly to in the local frame
 /**
@@ -95,7 +95,7 @@ void set_heading(float heading);
 This function is used to command the drone to fly to a waypoint. These waypoints should be specified in the local reference frame. This is typically defined from the location the drone is launched. Psi is counter clockwise rotation following the drone’s reference frame defined by the x axis through the right side of the drone with the y axis through the front of the drone. 
 @returns n/a
 */
-void set_destination(float x, float y, float z, float psi);
+void set_destination(float x, float y, float z, float psi, std::shared_ptr<UAV> robot, std::shared_ptr<ros::Publisher> pose_pub);
 
 void set_destination_lla(float lat, float lon, float alt, float heading);
 
@@ -122,7 +122,7 @@ int wait4start();
 This function will create a local reference frame based on the starting location of the drone. This is typically done right before takeoff. This reference frame is what all of the the set destination commands will be in reference to.
 @returns 0 - frame initialized
 */
-int initialize_local_frame(std::shared_ptr<Robot> robot);
+int initialize_local_frame(std::shared_ptr<UAV> robot);
 
 int arm();
 
@@ -133,7 +133,7 @@ The takeoff function will arm the drone and put the drone in a hover above the i
 @returns -1 - failed to arm 
 @returns -2 - failed to takeoff
 */
-int takeoff(float takeoff_alt);
+int takeoff(float takeoff_alt, std::shared_ptr<UAV> robot, std::shared_ptr<ros::Publisher> pose_pub, std::shared_ptr<ros::ServiceClient> arm_client, std::shared_ptr<ros::ServiceClient> takeoff_client);
 
 /**
 \ingroup control_functions
