@@ -7,12 +7,24 @@
 #include <geometry_msgs/PoseStamped.h>
 #include "gnc_functions.h"
 #include "robots.h"
+//#include <boost/bind/bind.hpp>
+//using std::placeholders::_1;
 
 class SCC
 {
     public:
         SCC(std::shared_ptr<ros::NodeHandle> nh)
         {
+            // Saving own copy of node handle
+            nh_ = nh;
+
+            // Some parameters
+            // TODO: put these as arg in launch
+            max_altitude_ = 10;
+
+            // Initialize robots
+            raven_ = std::make_shared<Raven>();
+            crow_ = std::make_shared<Crow>();
             // Services
             set_mode_srv_ = nh->advertiseService("/scc/set_mode", &SCC::set_mode_cb, this);
             arm_srv_ = nh->advertiseService("/scc/arm", &SCC::arm_cb, this);
@@ -25,16 +37,9 @@ class SCC
             // Pubs
             takeoff_pub_ = nh->advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
 
-            // Saving own copy of node handle
-            nh_ = nh;
-
-            // Some parameters
-            // TODO: put these as arg in launch
-            max_altitude_ = 10;
-
-            // Initialize robots
-            raven_ = std::make_shared<Raven>();
-            crow_ = std::make_shared<Crow>();
+            // Subscribers
+            crow_odom_sub_ = nh_->subscribe<nav_msgs::Odometry>("/crow/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, crow_));
+            raven_odom_sub_ = nh_->subscribe<nav_msgs::Odometry>("/raven/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, raven_));
         }
         bool set_mode_cb(scc_atlantis_ros1::SetMode::Request &req, scc_atlantis_ros1::SetMode::Response &res)
         {
@@ -93,7 +98,17 @@ class SCC
             ROS_INFO("Takeoff order was sent!");
             return true;
         }
-
+        void odom_cb(const nav_msgs::Odometry::ConstPtr& msg, std::shared_ptr<UAV> robot)
+        {
+            robot->set_pose(*msg);
+            enu_2_local(robot->get_pose());
+            float q0 = (*msg).pose.pose.orientation.w;
+            float q1 = (*msg).pose.pose.orientation.x;
+            float q2 = (*msg).pose.pose.orientation.y;
+            float q3 = (*msg).pose.pose.orientation.z;
+            float psi = atan2((2*(q0*q3 + q1*q2)), (1 - 2*(pow(q2,2) + pow(q3,2))) );
+            current_heading_g = psi*(180/M_PI) - local_offset_g;
+        }
     private:
         std::shared_ptr<ros::NodeHandle> nh_;
         // Servers
@@ -105,6 +120,10 @@ class SCC
         ros::ServiceClient arm_client_;
         // Pubs
         ros::Publisher takeoff_pub_;
+
+        // Subscribers
+        ros::Subscriber raven_odom_sub_;
+        ros::Subscriber crow_odom_sub_;
         
         // Parameters
         uint8_t max_altitude_;

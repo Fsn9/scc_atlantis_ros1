@@ -47,7 +47,7 @@ geometry_msgs::Point enu_2_local(nav_msgs::Odometry current_pose_enu)
   //ROS_INFO("Local position %f %f %f",X, Y, Z);
 }
 
-void pose_cb(const nav_msgs::Odometry::ConstPtr& msg)
+void odom_cb(const nav_msgs::Odometry::ConstPtr& msg) // DONE
 {
   current_pose_g = *msg;
   enu_2_local(current_pose_g);
@@ -239,9 +239,7 @@ int initialize_local_frame(std::shared_ptr<Robot> robot)
 	for (int i = 1; i <= 30; i++) {
 		ros::spinOnce();
 		ros::Duration(0.1).sleep();
-
 		
-
 		float q0 = current_pose_g.pose.pose.orientation.w;
 		float q1 = current_pose_g.pose.pose.orientation.x;
 		float q2 = current_pose_g.pose.pose.orientation.y;
@@ -537,7 +535,7 @@ int init_publisher_subscriber(ros::NodeHandle controlnode)
 	local_pos_pub = controlnode.advertise<geometry_msgs::PoseStamped>((ros_namespace + "/mavros/setpoint_position/local").c_str(), 10);
 	global_lla_pos_pub = controlnode.advertise<geographic_msgs::GeoPoseStamped>((ros_namespace + "/mavros/setpoint_position/global").c_str(), 10);
 	global_lla_pos_pub_raw = controlnode.advertise<mavros_msgs::GlobalPositionTarget>((ros_namespace + "/mavros/setpoint_raw/global").c_str(), 10);
-	currentPos = controlnode.subscribe<nav_msgs::Odometry>((ros_namespace + "/mavros/global_position/local").c_str(), 10, pose_cb);
+	currentPos = controlnode.subscribe<nav_msgs::Odometry>((ros_namespace + "/mavros/global_position/local").c_str(), 10, odom_cb);
 	state_sub = controlnode.subscribe<mavros_msgs::State>((ros_namespace + "/mavros/state").c_str(), 10, state_cb);
 	arming_client = controlnode.serviceClient<mavros_msgs::CommandBool>((ros_namespace + "/mavros/cmd/arming").c_str());
 	land_client = controlnode.serviceClient<mavros_msgs::CommandTOL>((ros_namespace + "/mavros/cmd/land").c_str());

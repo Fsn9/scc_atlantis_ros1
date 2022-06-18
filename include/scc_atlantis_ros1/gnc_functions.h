@@ -73,7 +73,7 @@ void state_cb(const mavros_msgs::State::ConstPtr& msg);
 geometry_msgs::Point enu_2_local(nav_msgs::Odometry current_pose_enu);
 
 //get current position of drone
-void pose_cb(const nav_msgs::Odometry::ConstPtr& msg);
+void odom_cb(const nav_msgs::Odometry::ConstPtr& msg);
 
 geometry_msgs::Point get_current_location();
 
