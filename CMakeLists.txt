@@ -214,10 +214,10 @@ include_directories(include/scc_atlantis_ros1)
 add_library(gnc_lib STATIC
   src/gnc_functions.cpp
 )
-
 add_library(robots_lib STATIC
   src/robots.cpp
 )
+target_link_libraries(gnc_lib ${catkin_LIBRARIES}) # So gnc_lib can use ROS
 
 # Define targets
 add_executable(scc src/run_scc.cpp)
