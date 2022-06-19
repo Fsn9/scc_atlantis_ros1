@@ -157,7 +157,7 @@ this function changes the mode of the drone to land
 @returns 1 - mode change successful
 @returns 0 - mode change not successful
 */
-int land();
+int land(std::shared_ptr<UAV> robot, std::shared_ptr<ros::ServiceClient> land_client);
 
 /**
 \ingroup control_functions

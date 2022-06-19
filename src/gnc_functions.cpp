@@ -413,12 +413,12 @@ this function changes the mode of the drone to land
 @returns 1 - mode change successful
 @returns 0 - mode change not successful
 */
-int land()
+int land(std::shared_ptr<UAV> robot, std::shared_ptr<ros::ServiceClient> land_client)
 {
-  mavros_msgs::CommandTOL srv_land;
-  if(land_client.call(srv_land) && srv_land.response.success)
+  mavros_msgs::CommandTOL land_request;
+  if(land_client->call(land_request) && land_request.response.success)
   {
-    ROS_INFO("land sent %d", srv_land.response.success);
+    ROS_INFO("%s is landing", robot->get_namespace_name().c_str());
     return 0;
   }else{
     ROS_ERROR("Landing failed");

@@ -60,6 +60,7 @@ find_package(catkin REQUIRED COMPONENTS
    SetMode.srv
    Arm.srv
    Takeoff.srv
+   Land.srv
 )
 
 ## Generate actions in the 'action' folder
