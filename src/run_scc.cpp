@@ -28,33 +28,33 @@ class SCC
             robots_["crow"] = std::make_shared<UAV>("crow");
 
             // Pubs
-            pose_pubs_["raven"] = std::make_shared<ros::Publisher>(nh->advertise<geometry_msgs::PoseStamped>("/mavros/setpoint_position/local", 10));
+            pose_pubs_["raven"] = std::make_shared<ros::Publisher>(nh->advertise<geometry_msgs::PoseStamped>("/raven/mavros/setpoint_position/local", 10));
             pose_pubs_["crow"] = std::make_shared<ros::Publisher>(nh->advertise<geometry_msgs::PoseStamped>("/crow/mavros/setpoint_position/local", 10));
 
             // Services
             set_mode_servers_["crow"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::SetMode::Request, scc_atlantis_ros1::SetMode::Response>("/scc/crow/set_mode", boost::bind(&SCC::set_mode_cb, this, _1, _2, robots_["crow"])));
-            set_mode_servers_["raven"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::SetMode::Request, scc_atlantis_ros1::SetMode::Response>("/scc/set_mode", boost::bind(&SCC::set_mode_cb, this, _1, _2, robots_["raven"])));
+            set_mode_servers_["raven"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::SetMode::Request, scc_atlantis_ros1::SetMode::Response>("/scc/raven/set_mode", boost::bind(&SCC::set_mode_cb, this, _1, _2, robots_["raven"])));
             arm_servers_["crow"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Arm::Request, scc_atlantis_ros1::Arm::Response>("/scc/crow/arm", boost::bind(&SCC::arm_cb, this, _1, _2, robots_["crow"])));
-            arm_servers_["raven"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Arm::Request, scc_atlantis_ros1::Arm::Response>("/scc/arm", boost::bind(&SCC::arm_cb, this, _1, _2, robots_["raven"])));
+            arm_servers_["raven"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Arm::Request, scc_atlantis_ros1::Arm::Response>("/scc/raven/arm", boost::bind(&SCC::arm_cb, this, _1, _2, robots_["raven"])));
             takeoff_servers_["crow"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Takeoff::Request, scc_atlantis_ros1::Takeoff::Response>("/scc/crow/takeoff", boost::bind(&SCC::takeoff_cb, this, _1, _2, robots_["crow"])));
-            takeoff_servers_["raven"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Takeoff::Request, scc_atlantis_ros1::Takeoff::Response>("/scc/takeoff", boost::bind(&SCC::takeoff_cb, this, _1, _2, robots_["raven"])));
+            takeoff_servers_["raven"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Takeoff::Request, scc_atlantis_ros1::Takeoff::Response>("/scc/raven/takeoff", boost::bind(&SCC::takeoff_cb, this, _1, _2, robots_["raven"])));
             land_servers_["crow"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Land::Request, scc_atlantis_ros1::Land::Response>("/scc/crow/land", boost::bind(&SCC::land_cb, this, _1, _2, robots_["crow"])));
-            land_servers_["raven"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Land::Request, scc_atlantis_ros1::Land::Response>("/scc/land", boost::bind(&SCC::land_cb, this, _1, _2, robots_["raven"])));
+            land_servers_["raven"] = std::make_shared<ros::ServiceServer>(nh->advertiseService<scc_atlantis_ros1::Land::Request, scc_atlantis_ros1::Land::Response>("/scc/raven/land", boost::bind(&SCC::land_cb, this, _1, _2, robots_["raven"])));
 
             // Clients
-            set_mode_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::SetMode>("/mavros/set_mode"));
+            set_mode_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::SetMode>("/raven/mavros/set_mode"));
             set_mode_clients_["crow"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::SetMode>("/crow/mavros/set_mode"));
-            arm_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming"));
+            arm_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandBool>("/raven/mavros/cmd/arming"));
             arm_clients_["crow"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandBool>("/crow/mavros/cmd/arming"));
-            takeoff_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/takeoff"));
+            takeoff_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/raven/mavros/cmd/takeoff"));
             takeoff_clients_["crow"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/crow/mavros/cmd/takeoff"));
-            land_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/land"));
+            land_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/raven/mavros/cmd/land"));
             land_clients_["crow"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/crow/mavros/cmd/land"));
             
             // Subscribers
-            odom_subs_["raven"] = std::make_shared<ros::Subscriber>(nh_->subscribe<nav_msgs::Odometry>("/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["raven"])));
+            odom_subs_["raven"] = std::make_shared<ros::Subscriber>(nh_->subscribe<nav_msgs::Odometry>("/raven/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["raven"])));
             odom_subs_["crow"] = std::make_shared<ros::Subscriber>(nh_->subscribe<nav_msgs::Odometry>("/crow/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["crow"])));
-            state_subs_["raven"] = std::make_shared<ros::Subscriber>(nh_->subscribe<mavros_msgs::State>("/mavros/state", 10, boost::bind(&SCC::state_cb, this, _1, robots_["raven"])));
+            state_subs_["raven"] = std::make_shared<ros::Subscriber>(nh_->subscribe<mavros_msgs::State>("/raven/mavros/state", 10, boost::bind(&SCC::state_cb, this, _1, robots_["raven"])));
             state_subs_["crow"] = std::make_shared<ros::Subscriber>(nh_->subscribe<mavros_msgs::State>("/crow/mavros/state", 10, boost::bind(&SCC::state_cb, this, _1, robots_["crow"])));
 
             // Initialize local frames
