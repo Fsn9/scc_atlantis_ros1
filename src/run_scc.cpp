@@ -8,6 +8,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include "gnc_functions.h"
 #include "robots.h"
+#include "visualization_msgs/Marker.h"
 
 class SCC
 {
@@ -50,7 +51,7 @@ class SCC
             takeoff_clients_["crow"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/crow/mavros/cmd/takeoff"));
             land_clients_["raven"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/raven/mavros/cmd/land"));
             land_clients_["crow"] = std::make_shared<ros::ServiceClient>(nh->serviceClient<mavros_msgs::CommandTOL>("/crow/mavros/cmd/land"));
-            
+
             // Subscribers
             odom_subs_["raven"] = std::make_shared<ros::Subscriber>(nh_->subscribe<nav_msgs::Odometry>("/raven/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["raven"])));
             odom_subs_["crow"] = std::make_shared<ros::Subscriber>(nh_->subscribe<nav_msgs::Odometry>("/crow/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["crow"])));
@@ -60,12 +61,15 @@ class SCC
             // Initialize local frames
             initialize_local_frame(robots_["raven"]);
             initialize_local_frame(robots_["crow"]);
+
+            // Init graphics
+            init_graphics();
         }
         bool set_mode_cb(scc_atlantis_ros1::SetMode::Request &req, scc_atlantis_ros1::SetMode::Response &res, std::shared_ptr<UAV> robot)
         {
             mavros_msgs::SetMode set_mode_srv;
             set_mode_srv.request.custom_mode = req.mode.c_str();
-            
+
             if (set_mode_clients_[robot->get_namespace_name()]->call(set_mode_srv))
             {
                 ROS_INFO("%s mode was set!", req.mode.c_str());
@@ -81,7 +85,7 @@ class SCC
         {
             mavros_msgs::CommandBool arm_srv;
             arm_srv.request.value = req.value;
-            
+
             if (arm_clients_[robot->get_namespace_name()]->call(arm_srv) && arm_srv.response.success)
             {
                 ROS_INFO("arm order was sent!");
@@ -108,7 +112,7 @@ class SCC
 
             std::string robot_ns_name = robot->get_namespace_name();
             takeoff(req.altitude, robot, pose_pubs_[robot_ns_name], arm_clients_[robot_ns_name], takeoff_clients_[robot_ns_name]);
-            
+
             ROS_INFO("Takeoff order was a success!");
             return true;
         }
@@ -132,6 +136,48 @@ class SCC
         void state_cb(const mavros_msgs::State::ConstPtr& msg, std::shared_ptr<UAV> robot)
         {
             robot->set_state(*msg);
+
+            // Repaint text markers
+            state_text_markers_pubs_["raven"].publish(state_text_markers_["raven"]);
+            state_text_markers_pubs_["crow"].publish(state_text_markers_["crow"]);
+        }
+        void init_graphics()
+        {
+            visualization_msgs::Marker raven_state_text_marker;
+            raven_state_text_marker.header.frame_id = "map";
+            raven_state_text_marker.header.stamp = ros::Time();
+            raven_state_text_marker.ns = "scc/graphics";
+            raven_state_text_marker.id = 0;
+            raven_state_text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+            raven_state_text_marker.action = visualization_msgs::Marker::ADD;
+            raven_state_text_marker.scale.z = 0.05;
+            raven_state_text_marker.color.a = 1.0;
+            raven_state_text_marker.color.r = 1.0;
+            raven_state_text_marker.color.g = 0.0;
+            raven_state_text_marker.color.b = 0.0;
+            raven_state_text_marker.text = robots_["raven"]->get_state().mode;
+
+            visualization_msgs::Marker crow_state_text_marker;
+            crow_state_text_marker.header.frame_id = "map";
+            crow_state_text_marker.header.stamp = ros::Time();
+            crow_state_text_marker.ns = "scc/graphics";
+            crow_state_text_marker.id = 1;
+            crow_state_text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+            crow_state_text_marker.action = visualization_msgs::Marker::ADD;
+            crow_state_text_marker.scale.z = 0.05;
+            crow_state_text_marker.color.a = 1.0;
+            crow_state_text_marker.color.r = 1.0;
+            crow_state_text_marker.color.g = 0.0;
+            crow_state_text_marker.color.b = 0.0;
+            crow_state_text_marker.text = robots_["crow"]->get_state().mode;
+
+            state_text_markers_["raven"] = raven_state_text_marker;
+            state_text_markers_["crow"] = crow_state_text_marker;
+            state_text_markers_pubs_["raven"] = nh_->advertise<visualization_msgs::Marker>("scc/graphics/raven/state_text_marker", 1000);
+            state_text_markers_pubs_["crow"] = nh_->advertise<visualization_msgs::Marker>("scc/graphics/crow/state_text_marker", 1000);
+
+            state_text_markers_pubs_["raven"].publish(raven_state_text_marker);
+            state_text_markers_pubs_["crow"].publish(crow_state_text_marker);
         }
     private:
         std::shared_ptr<ros::NodeHandle> nh_;
@@ -154,13 +200,16 @@ class SCC
         // Subscribers
         std::map<std::string, std::shared_ptr<ros::Subscriber>> odom_subs_;
         std::map<std::string, std::shared_ptr<ros::Subscriber>> state_subs_;
-        
+
         // Parameters
         uint8_t max_altitude_;
 
         // Robots
         std::map<std::string, std::shared_ptr<UAV>> robots_;
 
+        // Graphics
+        std::map<std::string, visualization_msgs::Marker> state_text_markers_;
+        std::map<std::string, ros::Publisher> state_text_markers_pubs_;
 };
 
 int main(int argc, char **argv)
@@ -172,7 +221,7 @@ int main(int argc, char **argv)
 
     // Create Scc server
     SCC scc(nh);
-    
+
     ROS_INFO("Ready to provide MavLink command services: arm, takeoff, set_mode");
 
     ros::spin();

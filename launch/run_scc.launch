@@ -1,0 +1,6 @@
+<launch>
+	<arg name="max_altitude_takeoff" default="10.0"/>
+	<node pkg="scc_atlantis_ros1" name="scc" type="scc" output="screen" args="$(arg max_altitude_takeoff)"/>
+	<node pkg="rviz" name="rviz_raven" type="rviz" args="-d $(find scc_atlantis_ros1)/rviz/raven.rviz"/>
+	<node pkg="rviz" name="rviz_crow" type="rviz" args="-d $(find scc_atlantis_ros1)/rviz/crow.rviz"/>
+</launch>

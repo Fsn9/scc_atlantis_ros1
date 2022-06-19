@@ -28,7 +28,7 @@
 
 /**
 \defgroup control_functions
-This module is designed to make high level control programming more simple. 
+This module is designed to make high level control programming more simple.
 */
 
 
@@ -41,7 +41,7 @@ extern geometry_msgs::PoseStamped waypoint_g;
 extern float current_heading_g;
 extern float local_offset_g;
 extern float correction_heading_g;
-extern float local_desired_heading_g; 
+extern float local_desired_heading_g;
 
 extern ros::Publisher local_pos_pub;
 extern ros::Publisher global_lla_pos_pub;
@@ -80,7 +80,7 @@ geometry_msgs::Point get_current_location();
 float get_current_heading();
 
 
-//set orientation of the drone (drone should always be level) 
+//set orientation of the drone (drone should always be level)
 // Heading input should match the ENU coordinate system
 /**
 \ingroup control_functions
@@ -104,7 +104,7 @@ void set_destination_lla_raw(float lat, float lon, float alt, float heading);
 /**
 \ingroup control_functions
 Wait for connect is a function that will hold the program until communication with the FCU is established.
-@returns 0 - connected to fcu 
+@returns 0 - connected to fcu
 @returns -1 - failed to connect to drone
 */
 int wait4connect();
@@ -128,17 +128,17 @@ int arm();
 
 /**
 \ingroup control_functions
-The takeoff function will arm the drone and put the drone in a hover above the initial position. 
-@returns 0 - nominal takeoff 
-@returns -1 - failed to arm 
+The takeoff function will arm the drone and put the drone in a hover above the initial position.
+@returns 0 - nominal takeoff
+@returns -1 - failed to arm
 @returns -2 - failed to takeoff
 */
 int takeoff(float takeoff_alt, std::shared_ptr<UAV> robot, std::shared_ptr<ros::Publisher> pose_pub, std::shared_ptr<ros::ServiceClient> arm_client, std::shared_ptr<ros::ServiceClient> takeoff_client);
 
 /**
 \ingroup control_functions
-This function returns an int of 1 or 0. THis function can be used to check when to request the next waypoint in the mission. 
-@return 1 - waypoint reached 
+This function returns an int of 1 or 0. THis function can be used to check when to request the next waypoint in the mission.
+@return 1 - waypoint reached
 @return 0 - waypoint not reached
 */
 int check_waypoint_reached(float pos_tolerance=0.3, float heading_tolerance=0.01);
@@ -173,8 +173,8 @@ int auto_set_current_waypoint(int seq);
 used to set yaw when running lla waypoint missions
 param1: Angle				target angle, 0 is north																			deg
 param2: Angular Speed		angular speed																						deg/s
-param3: Direction			direction: -1: counter clockwise, 1: clockwise					min: -1 max:1 increment:2	
-param4: Relative			0: absolute angle, 1: relative offset							min:0 max:1 increment:1	
+param3: Direction			direction: -1: counter clockwise, 1: clockwise					min: -1 max:1 increment:2
+param4: Relative			0: absolute angle, 1: relative offset							min:0 max:1 increment:1
 @returns 0 for success
 */
 int set_yaw(float angle, float speed, float dir, float absolute_rel);
@@ -183,7 +183,7 @@ int takeoff_global(float lat, float lon, float alt);
 
 /**
 \ingroup control_functions
-This function is called at the beginning of a program and will start of the communication links to the FCU. The function requires the program's ros nodehandle as an input 
+This function is called at the beginning of a program and will start of the communication links to the FCU. The function requires the program's ros nodehandle as an input
 @returns n/a
 */
 int init_publisher_subscriber(ros::NodeHandle controlnode);

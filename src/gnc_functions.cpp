@@ -11,7 +11,7 @@ geometry_msgs::PoseStamped waypoint_g;
 float current_heading_g;
 float local_offset_g;
 float correction_heading_g = 0;
-float local_desired_heading_g; 
+float local_desired_heading_g;
 
 ros::Publisher local_pos_pub;
 ros::Publisher global_lla_pos_pub;
@@ -78,7 +78,7 @@ float get_current_heading()
 	return current_heading_g;
 }
 
-//set orientation of the drone (drone should always be level) 
+//set orientation of the drone (drone should always be level)
 // Heading input should match the ENU coordinate system
 /**
 \ingroup control_functions
@@ -87,11 +87,11 @@ This function is used to specify the drone’s heading in the local reference fr
 */
 void set_heading(float heading, std::shared_ptr<UAV> robot)
 {
-  robot->set_local_desired_heading(heading); 
+  robot->set_local_desired_heading(heading);
   heading = heading + correction_heading_g + robot->get_local_offset();
-  
+
   ROS_INFO("Desired Heading %f ", robot->get_local_desired_heading());
-  
+
   float yaw = heading * deg2rad;
   float pitch = 0;
   float roll = 0;
@@ -118,8 +118,8 @@ void set_destination(float x, float y, float z, float psi, std::shared_ptr<UAV> 
 	//transform map to local
 	float correction_heading = robot->get_correction_heading();
 	float local_offset = robot->get_local_offset();
+
 	geometry_msgs::Point local_offset_pose = robot->get_local_offset_pose();
-	
 	float x_local = x*cos((correction_heading + local_offset - 90) * deg2rad) - y * sin((correction_heading + local_offset - 90) * deg2rad);
 	float y_local = x*sin((correction_heading + local_offset - 90) * deg2rad) + y * cos((correction_heading + local_offset - 90) * deg2rad);
 	float z_local = z;
@@ -133,13 +133,13 @@ void set_destination(float x, float y, float z, float psi, std::shared_ptr<UAV> 
 	robot->set_waypoint_position(x, y, z);
 
 	// TODO: make publisher
-	pose_pub->publish(robot->get_waypoint());	
+	pose_pub->publish(robot->get_waypoint());
 }
 
 void set_destination_lla(float lat, float lon, float alt, float heading)
 {
 	geographic_msgs::GeoPoseStamped lla_msg;
-	// mavros_msgs::GlobalPositionTarget 
+	// mavros_msgs::GlobalPositionTarget
 	lla_msg.pose.position.latitude = lat;
 	lla_msg.pose.position.longitude = lon;
 	lla_msg.pose.position.altitude = alt;
@@ -181,7 +181,7 @@ void set_destination_lla_raw(float lat, float lon, float alt, float heading)
 /**
 \ingroup control_functions
 Wait for connect is a function that will hold the program until communication with the FCU is established.
-@returns 0 - connected to fcu 
+@returns 0 - connected to fcu
 @returns -1 - failed to connect to drone
 */
 int wait4connect()
@@ -195,13 +195,13 @@ int wait4connect()
 	}
 	if(current_state_g.connected)
 	{
-		ROS_INFO("Connected to FCU");	
+		ROS_INFO("Connected to FCU");
 		return 0;
 	}
 	else
 	{
 		ROS_INFO("Error connecting to drone");
-		return -1;	
+		return -1;
 	}
 }
 
@@ -225,7 +225,7 @@ int wait4start()
 		return 0;
 	}else{
 		ROS_INFO("Error starting mission!!");
-		return -1;	
+		return -1;
 	}
 }
 
@@ -242,7 +242,7 @@ int initialize_local_frame(std::shared_ptr<UAV> robot) // TODO: change this to <
 		ros::spinOnce();
 		ros::Duration(0.1).sleep();
 		nav_msgs::Odometry pose = robot->get_pose();
-		
+
 		float q0 = pose.pose.pose.orientation.w;
 		float q1 = pose.pose.pose.orientation.x;
 		float q2 = pose.pose.pose.orientation.y;
@@ -291,19 +291,19 @@ int arm()
 	}
 	if(arm_request.response.success)
 	{
-		ROS_INFO("Arming Successful");	
+		ROS_INFO("Arming Successful");
 		return 0;
 	}else{
 		ROS_INFO("Arming failed with %d", arm_request.response.success);
-		return -1;	
+		return -1;
 	}
 }
 
 /**
 \ingroup control_functions
-The takeoff function will arm the drone and put the drone in a hover above the initial position. 
-@returns 0 - nominal takeoff 
-@returns -1 - failed to arm 
+The takeoff function will arm the drone and put the drone in a hover above the initial position.
+@returns 0 - nominal takeoff
+@returns -1 - failed to arm
 @returns -2 - failed to takeoff
 */
 int takeoff(float takeoff_alt, std::shared_ptr<UAV> robot, std::shared_ptr<ros::Publisher> pose_pub, std::shared_ptr<ros::ServiceClient> arm_client, std::shared_ptr<ros::ServiceClient> takeoff_client)
@@ -330,10 +330,10 @@ int takeoff(float takeoff_alt, std::shared_ptr<UAV> robot, std::shared_ptr<ros::
 	}
 	if(arm_request.response.success)
 	{
-		ROS_INFO("Arming Successful");	
+		ROS_INFO("Arming Successful");
 	}else{
 		ROS_INFO("Arming failed with %d", arm_request.response.success);
-		return -1;	
+		return -1;
 	}
 
 	// Request takeoff
@@ -348,20 +348,20 @@ int takeoff(float takeoff_alt, std::shared_ptr<UAV> robot, std::shared_ptr<ros::
 		return -2;
 	}
 	sleep(2);
-	return 0; 
+	return 0;
 }
 
 /**
 \ingroup control_functions
-This function returns an int of 1 or 0. THis function can be used to check when to request the next waypoint in the mission. 
-@return 1 - waypoint reached 
+This function returns an int of 1 or 0. THis function can be used to check when to request the next waypoint in the mission.
+@return 1 - waypoint reached
 @return 0 - waypoint not reached
 */
 int check_waypoint_reached(float pos_tolerance, float heading_tolerance)
 {
 	local_pos_pub.publish(waypoint_g);
-	
-	//check for correct position 
+
+	//check for correct position
 	float deltaX = abs(waypoint_g.pose.position.x - current_pose_g.pose.pose.position.x);
     float deltaY = abs(waypoint_g.pose.position.y - current_pose_g.pose.pose.position.y);
     float deltaZ = 0; //abs(waypoint_g.pose.position.z - current_pose_g.pose.pose.position.z);
@@ -372,7 +372,7 @@ int check_waypoint_reached(float pos_tolerance, float heading_tolerance)
     //check orientation
     float cosErr = cos(current_heading_g*(M_PI/180)) - cos(local_desired_heading_g*(M_PI/180));
     float sinErr = sin(current_heading_g*(M_PI/180)) - sin(local_desired_heading_g*(M_PI/180));
-    
+
     float headingErr = sqrt( pow(cosErr, 2) + pow(sinErr, 2) );
 
     // ROS_INFO("current heading %f", current_heading_g);
@@ -435,7 +435,7 @@ int set_speed(float speed__mps)
 {
 	mavros_msgs::CommandLong speed_cmd;
 	speed_cmd.request.command = 178;
-	speed_cmd.request.param1 = 1; // ground speed type 
+	speed_cmd.request.param1 = 1; // ground speed type
 	speed_cmd.request.param2 = speed__mps;
 	speed_cmd.request.param3 = -1; // no throttle change
 	speed_cmd.request.param4 = 0; // absolute speed
@@ -472,18 +472,18 @@ int auto_set_current_waypoint(int seq)
 used to set yaw when running lla waypoint missions
 param1: Angle				target angle, 0 is north																			deg
 param2: Angular Speed		angular speed																						deg/s
-param3: Direction			direction: -1: counter clockwise, 1: clockwise					min: -1 max:1 increment:2	
-param4: Relative			0: absolute angle, 1: relative offset							min:0 max:1 increment:1	
+param3: Direction			direction: -1: counter clockwise, 1: clockwise					min: -1 max:1 increment:2
+param4: Relative			0: absolute angle, 1: relative offset							min:0 max:1 increment:1
 @returns 0 for success
 */
 int set_yaw(float angle, float speed, float dir, float absolute_rel)
 {
     mavros_msgs::CommandLong yaw_msg;
     yaw_msg.request.command = 115;
-    yaw_msg.request.param1 = angle; // target angle 
+    yaw_msg.request.param1 = angle; // target angle
     yaw_msg.request.param2 = speed; //target speed
-    yaw_msg.request.param3 = dir; 
-    yaw_msg.request.param4 = absolute_rel; 
+    yaw_msg.request.param3 = dir;
+    yaw_msg.request.param4 = absolute_rel;
     ROS_INFO("Setting the yaw angle to %f [deg]", angle);
     if(command_client.call(yaw_msg))
     {
@@ -499,7 +499,7 @@ int set_yaw(float angle, float speed, float dir, float absolute_rel)
 	}else{
 		ROS_INFO("Yaw angle set at %d relative to current heading", yaw_msg.response.result);
 	}
-    
+
     return 0;
 }
 
@@ -511,7 +511,7 @@ int takeoff_global(float lat, float lon, float alt)
     srv_takeoff_global.request.latitude = lat;
     srv_takeoff_global.request.longitude = lon;
     srv_takeoff_global.request.altitude = alt;
-        
+
     if(takeoff_client.call(srv_takeoff_global)){
         sleep(3);
         ROS_INFO("takeoff sent at the provided GPS coordinates %d", srv_takeoff_global.response.success);
@@ -519,7 +519,7 @@ int takeoff_global(float lat, float lon, float alt)
     else
     {
         ROS_ERROR("Failed Takeoff %d", srv_takeoff_global.response.success);
-        
+
     }
     sleep(2);
     return 0;
@@ -527,7 +527,7 @@ int takeoff_global(float lat, float lon, float alt)
 
 /**
 \ingroup control_functions
-This function is called at the beginning of a program and will start of the communication links to the FCU. The function requires the program's ros nodehandle as an input 
+This function is called at the beginning of a program and will start of the communication links to the FCU. The function requires the program's ros nodehandle as an input
 @returns n/a
 */
 int init_publisher_subscriber(ros::NodeHandle controlnode)
