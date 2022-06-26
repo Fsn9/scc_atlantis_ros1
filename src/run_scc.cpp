@@ -28,6 +28,9 @@ class SCC
             robots_["raven"] = std::make_shared<UAV>("raven");
             robots_["crow"] = std::make_shared<UAV>("crow");
 
+            // Init graphics
+            init_graphics();
+
             // Pubs
             pose_pubs_["raven"] = std::make_shared<ros::Publisher>(nh->advertise<geometry_msgs::PoseStamped>("/raven/mavros/setpoint_position/local", 10));
             pose_pubs_["crow"] = std::make_shared<ros::Publisher>(nh->advertise<geometry_msgs::PoseStamped>("/crow/mavros/setpoint_position/local", 10));
@@ -61,9 +64,6 @@ class SCC
             // Initialize local frames
             initialize_local_frame(robots_["raven"]);
             initialize_local_frame(robots_["crow"]);
-
-            // Init graphics
-            init_graphics();
         }
         bool set_mode_cb(scc_atlantis_ros1::SetMode::Request &req, scc_atlantis_ros1::SetMode::Response &res, std::shared_ptr<UAV> robot)
         {
