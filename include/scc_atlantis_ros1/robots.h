@@ -9,9 +9,12 @@
 
 class Robot
 {
+  public:
+    Robot(std::string namespace_name);
   protected:
     float battery_;
     std::string state_;
+    std::string namespace_name_;
 };
 
 class UAV : public Robot
@@ -50,13 +53,12 @@ class UAV : public Robot
     geometry_msgs::Pose correction_vector_;
     geometry_msgs::Point local_offset_pose_;
     geometry_msgs::PoseStamped waypoint_;
-
-    std::string namespace_name_;
 };
 
-class Zarco : public Robot
+class ASV : public Robot
 {
   public:
-    Zarco() = default;
+    ASV(std::string namespace_name);
 };
+
 #endif // ROBOTS_H

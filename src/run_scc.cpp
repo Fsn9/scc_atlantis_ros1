@@ -6,6 +6,7 @@
 #include "mavros_msgs/SetMode.h"
 #include "mavros_msgs/CommandBool.h"
 #include <geometry_msgs/PoseStamped.h>
+#include "sensor_msgs/Imu.h"
 #include "gnc_functions.h"
 #include "robots.h"
 #include "visualization_msgs/Marker.h"
@@ -60,6 +61,8 @@ class SCC
             odom_subs_["crow"] = std::make_shared<ros::Subscriber>(nh_->subscribe<nav_msgs::Odometry>("/crow/mavros/global_position/local", 10, boost::bind(&SCC::odom_cb, this, _1, robots_["crow"])));
             state_subs_["raven"] = std::make_shared<ros::Subscriber>(nh_->subscribe<mavros_msgs::State>("/raven/mavros/state", 10, boost::bind(&SCC::state_cb, this, _1, robots_["raven"])));
             state_subs_["crow"] = std::make_shared<ros::Subscriber>(nh_->subscribe<mavros_msgs::State>("/crow/mavros/state", 10, boost::bind(&SCC::state_cb, this, _1, robots_["crow"])));
+            imu_subs_["raven"] = std::make_shared<ros::Subscriber>(nh_->subscribe<sensor_msgs::Imu>("/raven/mavros/imu/data", 10, boost::bind(&SCC::imu_cb, this, _1, robots_["raven"])));
+            imu_subs_["crow"] = std::make_shared<ros::Subscriber>(nh_->subscribe<sensor_msgs::Imu>("/crow/mavros/imu/data", 10, boost::bind(&SCC::imu_cb, this, _1, robots_["crow"])));
 
             // Initialize local frames
             initialize_local_frame(robots_["raven"]);
@@ -141,6 +144,9 @@ class SCC
             state_text_markers_pubs_["raven"].publish(state_text_markers_["raven"]);
             state_text_markers_pubs_["crow"].publish(state_text_markers_["crow"]);
         }
+        void imu_cb(const sensor_msgs::Imu::ConstPtr& msg, std::shared_ptr<UAV> robot)
+        {
+        }
         void init_graphics()
         {
             visualization_msgs::Marker raven_state_text_marker;
@@ -200,6 +206,7 @@ class SCC
         // Subscribers
         std::map<std::string, std::shared_ptr<ros::Subscriber>> odom_subs_;
         std::map<std::string, std::shared_ptr<ros::Subscriber>> state_subs_;
+        std::map<std::string, std::shared_ptr<ros::Subscriber>> imu_subs_;
 
         // Parameters
         uint8_t max_altitude_;

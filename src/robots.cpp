@@ -1,5 +1,10 @@
 #include "robots.h"
 
+Robot::Robot(std::string namespace_name)
+{
+    namespace_name_ = namespace_name;
+}
+
 nav_msgs::Odometry UAV::get_pose()
 {
     return current_pose_;
@@ -104,9 +109,12 @@ void UAV::set_state(mavros_msgs::State state)
     current_state_ = state;
 }
 
-UAV::UAV(std::string namespace_name)
+UAV::UAV(std::string namespace_name) : Robot(namespace_name)
 {
-    namespace_name_ = namespace_name;
     local_offset_g_ = 0;
     correction_heading_g_ = 0;
+}
+
+ASV::ASV(std::string namespace_name) : Robot(namespace_name)
+{
 }
