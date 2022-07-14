@@ -11,6 +11,7 @@ class Robot
 {
   public:
     Robot(std::string namespace_name);
+    std::string get_namespace_name();
   protected:
     float battery_;
     std::string state_;
@@ -38,7 +39,7 @@ class UAV : public Robot
     void set_waypoint_orientation(float qw, float qx, float qy, float qz);
     void set_waypoint_position(float x, float y, float z);
     geometry_msgs::Pose get_correction_vector();
-    std::string get_namespace_name();
+    
     mavros_msgs::State get_state();
     void set_state(mavros_msgs::State state);
 
