@@ -94,7 +94,7 @@ geometry_msgs::Pose UAV::get_correction_vector()
     return correction_vector_;
 }
 
-std::string UAV::get_namespace_name()
+std::string Robot::get_namespace_name()
 {
     return namespace_name_;
 }
