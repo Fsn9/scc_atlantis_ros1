@@ -1,4 +1,4 @@
-# SCC Atlantis (ROS1 Noetic)
+# SCC CRAS (ROS1 Noetic)
 In this version of ROS1 we need to connect the SCC one robot at a time.
 
 ## 1. Communication
